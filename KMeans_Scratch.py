@@ -1,9 +1,13 @@
+# ==================================== Importing Libraries ================================================
+
 import numpy as np
 import pandas as pd
 import random
 import matplotlib.pyplot as plt
 from matplotlib import style
 style.use('ggplot')
+
+# ===================================== Reading data file =================================================
 
 iris=pd.read_csv("iris.data")
 df = pd.DataFrame(iris)
@@ -23,37 +27,42 @@ Y=np.reshape(Y,len(Y))
 X=np.array(iris)
 X=np.delete(X,4,1)
 
+# ===================================== Defining Functions =================================================
+
+#Random centroid initiation
 def Centroid_init(K):
 
 	centroid=[]
 	for i in range(K):
 		centroid.append(random.choice(X))
 	centroid=np.array(centroid)
+
 	return centroid
 
+#Labeling data based on centroid
 def Labeling(centroid):
+
 	label=[]
+	label_bor=[]
 	for i in range(len(X)):
 		A = X[i]
 		distance=[]
-		for e in range(K):
+		for e in range(len(centroid)):
 			B = centroid[e]
-			# distance.append(np.sqrt(np.sum(A-B)**2))
 			D=np.sqrt(np.sum(A-B)**2)
-			# print(A ,B)
-			# print(D)
 			distance.append(D)
 		idx = np.argmin(distance)
-		# print(idx, distance[idx])
-		# print('\n')
+		idx_max = np.argmax(distance)
 		label.append(idx)
-	# print(label)
-	return label
+		label_bor.append(idx_max)
 
-def Centroid_change(label, K):
+	return label, label_bor
+
+#New centroid from labeled data i.e, Avg of labeled.pt
+def Centroid_change(label, K_cent):
 
 	new_cent=[]
-	for i in range(K):
+	for i in range(K_cent):
 		new_cent_i=[]
 		for e in range(len(label)):
 			if label[e] == i:
@@ -62,13 +71,15 @@ def Centroid_change(label, K):
 			else :
 				pass
 		new_cent_i=np.array(new_cent_i)
-		# var_test=new_cent_i.sum(axis=0)/len(new_cent_i)
-		new_cent.append(new_cent_i.sum(axis=0)/len(new_cent_i))
-
+		if len(new_cent_i)==0:
+			pass
+		else:
+			new_cent.append(new_cent_i.sum(axis=0)/len(new_cent_i))
 	new_cent=np.array(new_cent)
-	# print(new_cent)
+
 	return new_cent
 
+#Accurace function 
 def Accuracy(Final_label, Y):
 
 	count=0
@@ -81,6 +92,7 @@ def Accuracy(Final_label, Y):
 
 	return accuracy, count
 
+#KMeans function which itterates untill there is no change in centroid
 def KMeans():
 
 	Initial_cen=Centroid_init(K)
@@ -88,57 +100,53 @@ def KMeans():
 	count=0
 	while True:
 		if count == 0:
-			Label_labeling = Labeling(Initial_cen)
+			Label_labeling, _ = Labeling(Initial_cen)
 		else :
-			Label_labeling = Labeling(Changed_centroid)
-
+			Label_labeling, _ = Labeling(Changed_centroid)
 		Changed_centroid = Centroid_change(Label_labeling, K)
-		# print(Changed_centroid)
 		Cent_Store.append(Changed_centroid)
 		if count == 0:
 			pass
 		else:	
 			count_p=count-1
-			if Cent_Store[count_p].all()==Cent_Store[count].all():
+			if np.all(Cent_Store[count_p]==Cent_Store[count]):
 				break
 			else:
 				pass
 		count=count+1
-		# print(count)
-
-	Final_labeling=Labeling(Changed_centroid)
+	Final_labeling, Final_labeling_bor=Labeling(Changed_centroid)
 	Final_labeling=np.array(Final_labeling)
-	return Final_labeling, Changed_centroid, count
+
+	return Final_labeling, Final_labeling_bor, Changed_centroid, count
+
+# ==================================== Initial KMeans operation =========================================
 
 K=3
 itt=30
-
 Final_label_itt=[]
+Final_label_bor_itt=[]
 Final_Centroid_itt=[]
 Itteration_itt=[]
 Accuracy_itt=[]
 Count_iit=[]
 
+#Itterates untill reaches global optima as KMeans may converges at local optima based on initial centroid
 for i in range(itt):
-	Final_label, Final_Centroid, Itteration=KMeans()
-	# print(Y)
-	# print(Final_label)
-	# print(Final_Centroid)
-	# print(Itteration)
+	Final_label, Final_label_bor, Final_Centroid, Itteration=KMeans()
 	Acc, cou =Accuracy(Final_label, Y)
 	Final_label_itt.append(Final_label)
+	Final_label_bor_itt.append(Final_label_bor)
 	Final_Centroid_itt.append(Final_Centroid)
 	Itteration_itt.append(Itteration)
 	Accuracy_itt.append(Acc)
 	Count_iit.append(cou)
-
-# print(Accuracy_itt)
-
 Max_id=np.argmax(Accuracy_itt)
-# print(Accuracy_itt)
-# print(Max_id)
+#Accuracy
 print(Accuracy_itt[Max_id])
-# print(Count_iit[Max_id])
+#Count of failed predictions
+print(len(X)-Count_iit[Max_id])
+
+# ========================================= Visualization ==============================================
 
 plt.scatter(Final_Centroid_itt[Max_id][0][0],Final_Centroid_itt[Max_id][0][3],marker='x',c='r')
 plt.scatter(Final_Centroid_itt[Max_id][1][0],Final_Centroid_itt[Max_id][1][3],marker='x',c='g')
